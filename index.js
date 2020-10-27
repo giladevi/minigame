@@ -1,0 +1,244 @@
+const canvas= document.querySelector('canvas');
+const c = canvas.getContext('2d')//c for canvas context
+
+canvas.width = innerWidth
+canvas.height=innerHeight
+
+class Player{
+	constructor(x,y,radius,color){
+		this.x =x
+		this.y =y
+		this.radius =radius
+		this.color =color
+	}
+	
+	//this function draws the player using canvas arc function
+	draw(){
+		c.beginPath()
+		//player's x y and radius as created,
+		//starting angle 0 ending angle PI*2
+		//drawCounterClockwise flase
+		c.arc(this.x, this.y, this.radius, 0, Math.PI *2,false);
+		c.fillStyle=this.color//fill the player with the class color
+		c.fill()
+	}
+}
+
+class Projectile{
+	constructor(x,y,radius,color,velocity){
+		this.x=x
+		this.y=y
+		this.radius=radius
+		this.color=color
+		this.velocity=velocity
+	}
+	//draws a projectile
+	draw(){
+		c.beginPath()
+		//player's x y and radius as created,
+		//starting angle 0 ending angle PI*2
+		//drawCounterClockwise flase
+		c.arc(this.x, this.y, this.radius, 0, Math.PI *2,false);
+		c.fillStyle=this.color//fill the player with the class color
+		c.fill()
+	}
+	//updates the current location
+	update(){
+		this.draw()
+		this.x = this.x + this.velocity.x
+		this.y = this.y + this.velocity.y
+	}
+}
+
+class Enemy{
+	constructor(x,y,radius,color,velocity){
+		this.x=x
+		this.y=y
+		this.radius=radius
+		this.color=color
+		this.velocity=velocity
+	}
+	//draws a projectile
+	draw(){
+		c.beginPath()
+		//player's x y and radius as created,
+		//starting angle 0 ending angle PI*2
+		//drawCounterClockwise flase
+		c.arc(this.x, this.y, this.radius, 0, Math.PI *2,false);
+		c.fillStyle=this.color//fill the player with the class color
+		c.fill()
+	}
+	//updates the current location
+	update(){
+		this.draw()
+		this.x = this.x + this.velocity.x
+		this.y = this.y + this.velocity.y
+	}
+}
+
+const friction = 0.99
+class Particle{
+	constructor(x,y,radius,color,velocity){
+		this.x=x
+		this.y=y
+		this.radius=radius
+		this.color=color
+		this.velocity=velocity
+		this.alpha = 1
+	}
+	//draws a projectile
+	draw(){
+		c.save()
+		c.globalAlpha= this.alpha
+		c.beginPath()
+		//player's x y and radius as created,
+		//starting angle 0 ending angle PI*2
+		//drawCounterClockwise flase
+		c.arc(this.x, this.y, this.radius, 0, Math.PI *2,false);
+		c.fillStyle=this.color//fill the player with the class color
+		c.fill()
+		c.restore()
+	}
+	//updates the current location
+	update(){
+		this.draw()
+		this.velocity.x *= friction//deceleration effect
+		this.velocity.y *= friction
+		this.x += this.velocity.x
+		this.y += this.velocity.y
+		this.alpha -= 0.01
+	}
+}
+
+const x = canvas.width/2
+const y = canvas.height/2
+
+const player = new Player(x,y, 10, 'white')
+const projectiles =[]
+const enemies=[]
+const particles=[]
+
+//a function to spawn a new enemy
+function spawnEnemies(){
+	//spawn an enemy every second
+	setInterval(()=>{
+		//get radius value from 10 to 30 pixles
+		const radius=Math.random() * (30 - 10) + 10
+		let x
+		let y
+		//if the random number is below 0.5 generate enemy from the sides
+		if( Math.random() < 0.5){
+		//if the random number is below 0.5 generate enemy from the right border else from the left
+			x= Math.random() <0.5? 0-radius : canvas.width + radius
+			y= Math.random() * canvas.height
+		}
+		//else spawn enemies from the top and bottom
+		else{
+		//if the random number is below 0.5 generate enemy from the top border else from the bottom
+			x= Math.random() * canvas.width
+			y= Math.random() <0.5? 0-radius : canvas.height + radius
+		}
+		const color = `hsl(${Math.random() * 360}, 50%, 50%)`
+		//calculate the angle from the spawning position to the player
+		const angle = Math.atan2(canvas.height/2 - y ,canvas.width/2 -x) 
+		const velocity = {
+		//helps create a good ratio for velocity
+		x:Math.cos(angle) ,y: Math.sin(angle)
+		}
+		enemies.push(new Enemy(x,y,radius,color,velocity))
+		
+	},1000)
+}
+
+let animationId //frame ID
+
+//a function to animate movement
+function animate(){
+	//calling animte in a loop
+	animationId = requestAnimationFrame(animate)
+	//clear the canvas each loop before drawing updates
+	c.fillStyle = 'rgba(0,0,0,0.1)' // makes the drawings fade effects
+	c.fillRect(0,0,canvas.width,canvas.height)
+	player.draw()
+	particles.forEach((particle,index)=>{
+		//remove particle that faded out: alpha=0
+		if(particle.alpha <= 0){
+			particles.splice(index,1)
+		}
+		else{
+		particle.update()
+		}
+	})
+	//updates each projectile on the screen
+	projectiles.forEach((projectile, index)=>{
+		projectile.update()
+		//if the projectile is off the screen remove it
+		if ( projectile.x + projectile.radius < 0 ||
+			 projectile.x - projectile.radius > canvas.width ||
+			 projectile.y + projectile.radius < 0 ||
+			 projectile.y - projectile.radius > canvas.height){
+			//removing "flash" effect of trying to draw a removed enemy and projectile
+			setTimeout(()=>{
+				projectiles.splice(index, 1)//remove projectile
+			},0)
+		}
+	})//end for
+	
+	enemies.forEach((enemy, index) =>{
+		enemy.update()
+		///hitting player///
+		const dist = Math.hypot(player.x-enemy.x, player.y - enemy.y)
+		if(dist - enemy.radius - player.radius < 1){
+			cancelAnimationFrame(animationId)//endgame
+		}
+		///hitting enemies///
+		//check if the projectiles hits the enemies
+		projectiles.forEach((projectile, projectileIndex)=>{
+			//cehck the distance between projectiles and enemy
+			const dist = Math.hypot(projectile.x-enemy.x, projectile.y - enemy.y)
+			
+			//if the radiuses of the projectile and enemy touches  reduce enemy / remove both
+			if(dist - enemy.radius - projectile.radius < 1){
+				//splash effect
+				for (let i = 0 ; i < enemy.radius*2; i++){
+					particles.push(new Particle(
+									projectile.x,projectile.y,Math.random()*2,enemy.color,
+									{x:(Math.random()-0.5)*(Math.random()*6),y:(Math.random()-0.5)*(Math.random()*6)}
+					))
+				}
+				//if after hitting enemy radius is larger than 10 reduce by 10 else remove enemy
+				if(enemy.radius - 10 > 8){
+					//using gsap library to make the transition effect
+					gsap.to(enemy, {
+						radius: enemy.radius -10
+					})
+					setTimeout(()=>{
+						projectiles.splice(projectileIndex, 1)//remove projectile
+					},0)
+				}
+				else{
+					//removing "flash" effect of trying to draw a removed enemy and projectile
+					setTimeout(()=>{
+						enemies.splice(index, 1)//remove enemy
+						projectiles.splice(projectileIndex, 1)//remove projectile
+					},0)
+				}
+			}//end of if
+		})//end of for each enemy projectiles distance check
+	})//end of enemies check
+}
+
+//a mouse event generating new projectile whenever we click the screen using the mouse event properties
+addEventListener('click',(event)=>{
+	//get the angle to the mouse position using atan2(y,x)
+	const angle = Math.atan2(event.clientY - canvas.height/2,event.clientX - canvas.width/2) 
+	const velocity = {
+		//helps create a good ratio for velocity multiply by 5 for a nice speed
+		x:Math.cos(angle)*5 ,y: Math.sin(angle)*5
+	}
+	//adds a new projectile with each click
+	projectiles.push(new Projectile(canvas.width/2,canvas.height/2,5,'white',velocity))
+})
+
+animate()
+spawnEnemies()
