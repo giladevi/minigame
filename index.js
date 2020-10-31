@@ -222,8 +222,8 @@ function animate(){
 				//splash effect
 				for (let i = 0 ; i < enemy.radius*2; i++){
 					particles.push(new Particle(
-									projectile.x,projectile.y,Math.random()*2,enemy.color,
-									{x:(Math.random()-0.5)*(Math.random()*6),y:(Math.random()-0.5)*(Math.random()*6)}
+						projectile.x,projectile.y,Math.random()*2,enemy.color,
+						{x:(Math.random()-0.5)*(Math.random()*6),y:(Math.random()-0.5)*(Math.random()*6)}
 					))
 				}
 				//if after hitting enemy radius is larger than 10 reduce by 10 else remove enemy
