@@ -4,6 +4,11 @@ const c = canvas.getContext('2d')//c for canvas context
 canvas.width = innerWidth
 canvas.height=innerHeight
 
+const scoreEl=document.querySelector('#scoreEl')
+const startGameBtn = document.querySelector('#startGameBtn')
+const modalEl = document.querySelector('#ModalEl')
+const bigScoreEl = document.querySelector('#bigScoreEl')
+
 class Player{
 	constructor(x,y,radius,color){
 		this.x =x
@@ -113,11 +118,20 @@ class Particle{
 const x = canvas.width/2
 const y = canvas.height/2
 
-const player = new Player(x,y, 10, 'white')
-const projectiles =[]
-const enemies=[]
-const particles=[]
+let player = new Player(x,y, 10, 'white')
+let projectiles =[]
+let enemies=[]
+let particles=[]
 
+function init(){
+	player = new Player(x,y, 10, 'white')
+	projectiles =[]
+	enemies=[]
+	particles=[]
+	score=0
+	scoreEl.innerHTML = score
+	bigScoreEl.innerHTML = score
+}
 //a function to spawn a new enemy
 function spawnEnemies(){
 	//spawn an enemy every second
@@ -151,6 +165,7 @@ function spawnEnemies(){
 }
 
 let animationId //frame ID
+let score = 0
 
 //a function to animate movement
 function animate(){
@@ -190,6 +205,8 @@ function animate(){
 		const dist = Math.hypot(player.x-enemy.x, player.y - enemy.y)
 		if(dist - enemy.radius - player.radius < 1){
 			cancelAnimationFrame(animationId)//endgame
+			modalEl.style.display = 'flex'
+			bigScoreEl.innerHTML = score
 		}
 		///hitting enemies///
 		//check if the projectiles hits the enemies
@@ -199,6 +216,9 @@ function animate(){
 			
 			//if the radiuses of the projectile and enemy touches  reduce enemy / remove both
 			if(dist - enemy.radius - projectile.radius < 1){
+				//increase score
+				
+				
 				//splash effect
 				for (let i = 0 ; i < enemy.radius*2; i++){
 					particles.push(new Particle(
@@ -208,6 +228,11 @@ function animate(){
 				}
 				//if after hitting enemy radius is larger than 10 reduce by 10 else remove enemy
 				if(enemy.radius - 10 > 8){
+					//increase score from shrinking
+					score += 100
+					//update score text
+					scoreEl.innerHTML=score
+				
 					//using gsap library to make the transition effect
 					gsap.to(enemy, {
 						radius: enemy.radius -10
@@ -217,6 +242,9 @@ function animate(){
 					},0)
 				}
 				else{
+					//increase score from removing
+					score += 250
+					scoreEl.innerHTML=score
 					//removing "flash" effect of trying to draw a removed enemy and projectile
 					setTimeout(()=>{
 						enemies.splice(index, 1)//remove enemy
@@ -240,5 +268,10 @@ addEventListener('click',(event)=>{
 	projectiles.push(new Projectile(canvas.width/2,canvas.height/2,5,'white',velocity))
 })
 
-animate()
-spawnEnemies()
+//start the game when we press start game button
+startGameBtn.addEventListener('click',(event)=>{
+	init()
+	animate()
+	spawnEnemies()
+	modalEl.style.display = 'none'
+})
